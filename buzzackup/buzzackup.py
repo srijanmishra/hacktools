@@ -37,5 +37,4 @@ def main():
         htmlOutputFileName = "buzzout-%s.html" % profile
         exportHtmlFeed(directory, htmlOutputFileName)
 
-if __name__ == '__main__':
-    main()
+main()

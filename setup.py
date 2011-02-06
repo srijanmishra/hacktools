@@ -49,6 +49,6 @@ setup(
     ],
     entry_points="""
     [console_scripts]
-    buzzackup = buzzackup:main
+    buzzackup = buzzackup
     """,
 )

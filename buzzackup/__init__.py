@@ -25,6 +25,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 try:
-    from __main__ import *
+    from buzzackup import *
 except ImportError, e:
     pass
