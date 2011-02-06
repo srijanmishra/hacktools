@@ -6,57 +6,44 @@
 # help: python buzzackup.py --help
 ###############################################################################
 
-import urllib2
 import xml.etree.ElementTree as ET
-from ConfigParser import SafeConfigParser
-from optparse import OptionParser
 from django.utils.encoding import smart_str
 from calendar import month_name
+from common import readFeed, readFeedFromFile, namespace, namespace_thr, namespace_likers, apiPrefix, feedUrl, likeFeedUrl
 
-namespace = "{http://www.w3.org/2005/Atom}"
-namespace_thr = "{http://purl.org/syndication/thread/1.0}"
-namespace_likers = "{http://portablecontacts.net/ns/1.0}"
-apiPrefix = "http://www.googleapis.com/buzz/v1/"
-feedUrl = apiPrefix + "activities/%s/@public?max-results=100&bhu"
-
-def readFeed(url):
-    if url != None:
-        request = urllib2.Request(url);
-        response = urllib2.urlopen(request)
-        rawFeed = response.read()
-        return rawFeed
-    return None
-
-def readFeedFromFile(fileName = 'buzzackup.xml'):
-    f = open(fileName, 'r')
-    data = f.read()
-    f.close()
-    return data 
-
-def exportHtmlFeed(feedFileName, htmlOutputFileName, handle, nick, reverse = False):
-    data = readFeedFromFile(feedFileName)
-    entries = ET.XML(data).findall(namespace + "entry")
-    if reverse: entries.reverse()
-
+def exportHtmlFeed(feedFile, directory, fileCount, htmlOutputFileName, handle, nick, reverse = False):
     f = open(htmlOutputFileName, 'w')
     f.write("<html><head><meta http-equiv=Content-Type content=\"text/html; charset=UTF-8\">")
+    f.write("<link rel=\"stylesheet\" href=\"buzzout.css\" type=\"text/css\" media=\"screen\" />")
     f.write("<title>Buzzackup of %s<title></head><body>" % nick)
-    f.write("<h1>Buzz by %s {%d}!</h1>" % (nick ,len(entries)))
 
-    entryNumber = 1
-    print "Crawling Google network for buzz... Found %d buzz posts for %s" % (len(entries), nick)
+    data = readFeedFromFile(feedFile)
+    entries = ET.XML(data).findall(namespace + "entry")
+    if reverse: entries.reverse()
+    
+    f.write("<h1>Buzz by %s {%d}!</h1>" % (nick, len(entries)))
+    entryNumber = 0
+    print "Crawling Google network for buzz feeds... Found %d buzz posts for %s" % (len(entries), nick)
+
     for entry in entries:
-        print "Processing buzz post. Progress: (%d/%d) %d%%" % (entryNumber, len(entries), entryNumber * 100 / len(entries)) 
+        #Buzz post starts        
         f.write("<div class=\"buzz\">")
+        
+        #Process post date
         entryDate = entry.findall(namespace + 'updated')[0].text.split('T')[0].split('-')
         prettyDate = "%s %s %s " % (entryDate[2], month_name[int(entryDate[1])], entryDate[0])
         f.write("<strong>" + prettyDate + "</strong>")
+
+        #Process post content
         post = entry.findall(namespace + 'content')[0].text
         f.write("<div class=\"post\">" + smart_str(post) + "</div>")
-        postId = entry.findall(namespace + 'id')[0].text.replace('/', ':')
-        likedUrl = apiPrefix + "activities/" + handle + "/@self/" + postId + "/@liked&max-results=100"
-        rawLikedFeed = readFeed(likedUrl)
+
+        #Process Like feed
+        postId = entry.findall(namespace + 'id')[0].text
+        likeFeed = likeFeedUrl % (handle, postId)
+        rawLikedFeed = readFeed(likeFeed)
         likersTree = ET.XML(rawLikedFeed )
+        print "Like Tree length", len(likersTree)
         totalLikes = likersTree.findall(namespace_likers + 'totalResults')[0].text
         likeCounter = 0
         if int(totalLikes) != 0:
@@ -71,11 +58,15 @@ def exportHtmlFeed(feedFileName, htmlOutputFileName, handle, nick, reverse = Fal
                 if likeCounter != len(likers):
                     f.write(", ")
             f.write("</div>")
+        
         links = entry.findall(namespace + 'link')
         f.write("<div class=\"links\">")
+
         for link in links:
             if link.get('rel') == 'enclosure':
                 f.write("<a href=\"" + smart_str(link.get('href')) + "\">" + smart_str(link.get('title')) + "</a><br>")
+            if link.get('rel') == 'http://schemas.google.com/buzz/2010#liked':
+                totalLikes = likersTree.findall(namespace_likers + 'totalResults')[0].text
             if link.get('rel') == 'replies':
                 replyCount = entry.findall(namespace_thr + 'total')[0].text
                 if int(replyCount) != 0:
@@ -95,36 +86,20 @@ def exportHtmlFeed(feedFileName, htmlOutputFileName, handle, nick, reverse = Fal
                     f.write("</div>")
         f.write("</div></div><br>")
         entryNumber += 1
+        print "Processing buzz post. Progress: (%d/%d) %d%%" % (entryNumber, len(entries), entryNumber * 100 / len(entries))
         
     f.write('</body></html>')
     f.close()
 
     print "Exported to HTML output:", htmlOutputFileName
     
-def main():
-    parser = OptionParser()
-    parser.add_option("-i", "--id", dest="handle", default="rohityadav89", help="Your Google Buzz Profile id/handle")
-    parser.add_option("-n", "--nick", dest="nick", default="Rohit Yadav", help="Your Name")
-    parser.add_option("-f", "--feedfile", dest="fileName", default="", help="Specify a xml feed file as input")
-    parser.add_option("-o", "--htmlfile", dest="outputFileName", default="", help="Output xml feed file")
-    parser.add_option("-d", dest="download", action="store_true", default=False, help="Enable to fetch the feed. Default to use fetched file.")
-    parser.add_option("-e", dest="export", action="store_true", default=False, help="Enable to parse a pre-fetched xml feed file.")
-    (options, args) = parser.parse_args()
+def testmain():
+    handle = 'rohityadav89'
+    nick = 'Test Buzzackup'
 
-    handle = options.handle
-    nick = options.nick
-    if options.fileName == "":
-        fileName = "buzzackup-%s-%s.xml" % (handle, '%d')
-
-    if options.outputFileName == "":
-        htmlOutputFileName = "buzzout-%s.html" % handle
-
-    if options.download:
-        (totalFiles, totalEntries) = importBuzzFeed(handle, fileName, feedUrl % handle)
-        print "Buzz feed backedup in %d files, total posts found are: %d" % (totalFiles, totalEntries)
-
-    if options.export:
-        exportHtmlFeed(fileName, htmlOutputFileName, handle, nick)
+    fileName = "buzzackup.xml"
+    htmlOutputFileName = "buzzout-%s.html" % handle
+    exportHtmlFeed(fileName, "./", 0, htmlOutputFileName, handle, nick)
 
 if __name__ == '__main__':
-    main()
+    testmain()

@@ -6,60 +6,47 @@
 # help: python buzzackup.py --help
 ###############################################################################
 
-import urllib2
 import xml.etree.ElementTree as ET
-from ConfigParser import SafeConfigParser
-from optparse import OptionParser
-from django.utils.encoding import smart_str
-from calendar import month_name
+from common import readFeed, readFeedFromFile, namespace, feedUrl
 
-namespace = "{http://www.w3.org/2005/Atom}"
-namespace_thr = "{http://purl.org/syndication/thread/1.0}"
-namespace_likers = "{http://portablecontacts.net/ns/1.0}"
-apiPrefix = "http://www.googleapis.com/buzz/v1/"
-feedUrl = apiPrefix + "activities/%s/@public?max-results=100&bhu"
-
-def readFeed(url):
-    if url != None:
-        request = urllib2.Request(url);
-        response = urllib2.urlopen(request)
-        rawFeed = response.read()
-        return rawFeed
-    return None
-
-def readFeedFromFile(fileName = 'buzzackup.xml'):
-    f = open(fileName, 'r')
-    data = f.read()
-    f.close()
-    return data
-
-def importBuzzFeed(handle, fileName, url, stock = 0):
-    print "Getting raw Google Buzz feed from:", url
-    f = open(fileName % stock, 'w')
+def importRawFeed(fileName, url):
+    f = open(fileName, 'w')
     rawFeed = readFeed(url);
     f.write(rawFeed)
     f.close()
-    print "Raw feed saved as file: %s" % (fileName % stock)
-    
-    tree = ET.XML(rawFeed)
-    links = tree.findall(namespace + "link")
+    print "Raw feed saved in: %s" % fileName
+    return rawFeed
 
-    totalFiles = 1
-    totalEntries = len(tree.findall(namespace + "entry"))
-    recFiles = 0
-    recEntries = 0
+def importBuzzFeed(handle, fileName, url = feedUrl, stock = 0):
+    if url == feedUrl: url = url % handle
+    print "Getting raw Google Buzz feed from:", url
 
-    for link in links:
-        if link.get('rel') == 'next':
-            (recFiles, recEntries) = importBuzzFeed(handle, fileName, 'http' + link.get('href')[5:]+'&ampbhu', stock + 1)
-    return (totalFiles+recFiles, totalEntries+recEntries) 
+    totalFiles = 0
+    totalEntries = 0
+    gotLinks = False
+
+    while True:
+        rawFeed = importRawFeed(fileName % stock, url)
+        tree = ET.XML(rawFeed)
+        links = tree.findall(namespace + "link")
+        totalFiles += 1
+        totalEntries += len(tree.findall(namespace + "entry"))
+
+        for link in links:
+            if link.get('rel') == 'next':
+                stock += 1 
+                url = 'http' + link.get('href')[5:] + '&bhu'
+                gotLinks = True
+                break
+            else:
+                gotLinks = False
+        if not gotLinks: break
+    return (totalFiles, totalEntries) 
   
 def testmain():    
     handle = 'rohityadav89'
     nick = 'Rohit Yadav'
-
     fileName = "buzzackup-%s-%s.xml" % (handle, '%d')
-
     (totalFiles, totalEntries) = importBuzzFeed(handle, fileName, feedUrl % handle)
     print "Buzz feed backedup in %d files, total posts found are: %d" % (totalFiles, totalEntries)
 
