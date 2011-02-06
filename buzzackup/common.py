@@ -20,10 +20,10 @@ namespace = "{http://www.w3.org/2005/Atom}"
 namespace_thr = "{http://purl.org/syndication/thread/1.0}"
 namespace_likers = "{http://portablecontacts.net/ns/1.0}"
 namespace_buzz = "{http://schemas.google.com/buzz/2010}"
+namespace_activity = "{http://activitystrea.ms/spec/1.0/}"
 #API urls
 apiPrefix = "http://www.googleapis.com/buzz/v1/"
 feedUrl = apiPrefix + "activities/%s/@public?max-results=100&bhu"
-likeFeedUrl = apiPrefix + "activities/%s/@self/%s/@liked&max-results=100&bhu"
 
 def readFeed(url):
     if url != None:
