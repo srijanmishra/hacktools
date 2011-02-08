@@ -1,16 +1,10 @@
-About
-=====
-Buzzackup, Google Buzz feed backup utility and static feed webpage generator
-'Get rid of Google Buzz'!
+Tools and Hacks: (warranty not included :)
 
-Building and installing
-=======================
-  python setup.py build
-  python setup.py install
+buzzackup: google buzz feed backup utility and static feed webpage generator
+s3uploader: a simple python-boto based s3 uploader script
 
-License
-=======
-
+License for all:
+(please consider some donations if you find my hacks useful :)
 Copyright (c) 2011, Rohit Yadav
 All rights reserved.
 
