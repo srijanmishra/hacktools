@@ -1,3 +1,4 @@
+awskeys.*
 backup/
 *.xml
 *.pyc
