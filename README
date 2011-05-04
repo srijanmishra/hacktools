@@ -1,6 +1,9 @@
 Tools and Hacks: (warranty not included :)
 
+attackprofiler: profiles attack on a server, using geoip etc
 buzzackup: google buzz feed backup utility and static feed webpage generator
+crawlerdataminer: social network data miner
+image-man: multiple image processors
 s3uploader: a simple python-boto based s3 uploader script
 
 License for all:
