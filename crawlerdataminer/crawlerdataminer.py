@@ -11,13 +11,13 @@ from lxml import etree
 
 links = {}
 
-DOMAIN = 'puthere-the-domain.com'
+DOMAIN = 'domain.com'
 PROFILE_URL = 'http://www.%s/members/' % DOMAIN
 LOGIN_URL = 'https://www.%s/Login.aspx?returl=' % DOMAIN
 LOGOUT_URL = 'https://www.%s/Logout.aspx' % DOMAIN
 
 def filterProfileLinks(htmlData):
-    rawResult = re.findall("""<a href='""" + PROFILE_URL + """\?id=[0-9]*' id=[A-Za-z0-9_='"(); >.-]*</a>""", htmlData)
+    rawResult = re.findall("""<a href="http://www.domain.com/members/\?id=[0-9]*" id=[A-Za-z0-9_='"(); >.-]*</a>""", htmlData)
     for res in rawResult:
         url = re.findall(PROFILE_URL + """\?id=[0-9]*""", res)
         name = re.findall(""">[A-Za-z0-9_='"();,->. \t]*<""", res)[0][1:-1]
@@ -28,7 +28,7 @@ def processSearchResults():
     while i < 27: # No of result pages are 26, you should download the search results pages manually and store in searchpages dir
         filename = "searchpages/%d.html" % i
         f = open(filename , 'r')
-        print "\r[%3d %%] Processing file: %s..." % (i*100/26, filename),
+        print "[%3d %%] Processing file: %s...\n" % (i*100/26, filename),
         filterProfileLinks(f.read())
         i = i+1
     f = open('profile-links.txt', 'w')
@@ -53,8 +53,9 @@ def crawlProfilePages():
     opener.open( LOGIN_URL, login_data)
     print "[+] Logged in! Getting profiles..."
 
+    os.mkdir('profiles')
+    i = 1
     for key in links.keys():
-        i = 1
         print "Fetching profile of %s from %s" % (links[key]["name"], links[key]["url"])
         resp = opener.open(links[key]["url"])
         output = "profiles/%s.html" % key
@@ -114,6 +115,7 @@ def parseProfiles(profileDir):
             moreindex = cleanData.index('More Information ') + 1
             links[key]["moreinfo"] = ''.join(cleanData[moreindex:])
         else:
+            moreindex = len(cleanData)
             links[key]["moreinfo"] = ''
 
         if 'Business Email: ' in cleanData:
