@@ -6,12 +6,14 @@ import sys, string, time
 import SocketServer
 import telnetlib
 import socket
+import base64
 
 command_prompt = ">"
 t = telnetlib.Telnet()
-host = "10.1.1.1" # The switch we want to piggyback on :)
+host = "10.1.1.2" # The switch we want to piggyback on :)
 passwd = "cmc"
 timeout = 15
+proxyAuth = "Proxy-Authorization: Basic %s\r\n\r\n" % base64.encodestring("itp127:itp127")
 
 class HttpOverTelnetHandler(SocketServer.StreamRequestHandler):
   def handle(self):
@@ -20,7 +22,8 @@ class HttpOverTelnetHandler(SocketServer.StreamRequestHandler):
     for req in reqs:
       if not "Accept" in req: # Ugly hack to fix Firefox guts
         http_req += (req + '\r\n')
-    http_req += 'Proxy-Authorization: Basic aXRwMTMwOml0cDEzMA==\r\n\r\n' # Base64 auth :P
+    global proxyAuth
+    http_req += proxyAuth  # Base64 auth :P
     self.data = http_req
     print "%s requesting URI: %s" % (self.client_address[0], reqs[0])
     http_data = telnet_tunnel(self.data)
@@ -36,7 +39,6 @@ def telnet_tunnel(request):
 
   t.write("telnet 10.1.1.10 80 /noecho /quiet\n") # Pwn proxy4 ;)
   response = t.read_until("\n", timeout)
-  print "Telnet: ", response
 
   t.write(request)
   response = t.read_until(command_prompt, timeout)[:-len(command_prompt)]
@@ -60,7 +62,7 @@ def telnet_init():
 
 def main():
   print "Http Over Telnet! Thanks to pk for the hint.\nAuthor: Rohit Yadav\n"
-  HOST, PORT = "10.8.48.1", 9090
+  HOST, PORT = "localhost", 9090
   server = SocketServer.TCPServer((HOST, PORT), HttpOverTelnetHandler, False)
   server.allow_reuse_address = True # Prevent 'cannot bind to address' errors on restart
   server.server_bind()     # Manually bind, to support allow_reuse_address
