@@ -1,10 +1,13 @@
-Tools and Hacks: (warranty not included :)
+Tools and Hacks: (battery included :)
 
 attackprofiler: profiles attack on a server, using geoip etc
+bhuproxy: reverse proxy serves Internet via one of the bhu proxies
 buzzackup: google buzz feed backup utility and static feed webpage generator
 crawlerdataminer: social network data miner
 image-man: multiple image processors
 s3uploader: a simple python-boto based s3 uploader script
+spojpdfgetter: grabs all puzzle/problem pdfs from spoj for offline fun
+telnethack: HTTP over Telnet, hacks over one of the bhu switches
 
 License for all:
 (please consider some donations if you find my hacks useful :)
