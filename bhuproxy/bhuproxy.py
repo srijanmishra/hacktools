@@ -17,7 +17,8 @@ class BHUProxyRequest(proxy.Request):
         http.Request.__init__(self, channel, queued)
         self.reactor = reactor
     def process(self):
-        if not 'https' in self.uri:
+        log.msg("Process: "+self.uri)
+        if not 'https' in self.uri[:6]:
             if "?" in self.uri: rest = self.uri + "&bhu"
             else: rest = self.uri + "?bhu"
         else: rest = self.uri
