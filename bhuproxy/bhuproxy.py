@@ -11,13 +11,12 @@ from twisted.python import log
 log.startLogging(sys.stdout)
 
 class BHUProxyRequest(proxy.Request):
-    proxyURI = "10.1.1.16"
-    proxyPort = 80
+    proxyURI = "10.5.41.2"
+    proxyPort = 8080
     def __init__(self, channel, queued, reactor=reactor):
         http.Request.__init__(self, channel, queued)
         self.reactor = reactor
     def process(self):
-        log.msg("Process: "+self.uri)
         if not 'https' in self.uri[:6]:
             if "?" in self.uri: rest = self.uri + "&bhu"
             else: rest = self.uri + "?bhu"
@@ -35,6 +34,7 @@ class BHUProxy(http.HTTPChannel):
     requestFactory = BHUProxyRequest
 
 class ProxyFactory(http.HTTPFactory):
+    #protocol = proxy.Proxy # for simple proxy
     protocol = BHUProxy
  
 reactor.listenTCP(8080, ProxyFactory())
