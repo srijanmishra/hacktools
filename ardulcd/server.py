@@ -14,7 +14,7 @@ s = serial.Serial()
 
 stream = None
 samples = 16
-s_rate = 11000
+s_rate = 44100
 def getFFT():
   global stream
   if stream is None:
@@ -84,9 +84,9 @@ def backlight(p):
 def goto(line, column):
   global s
   if line == 0:
-    s.write(128+column)
+    s.write(chr(128+column))
   else:
-    s.write(148+column)
+    s.write(chr(148+column))
 
 def pl(st):
   global s
@@ -100,6 +100,7 @@ def pl(st):
 def repl():
   global s
   shell = Monitor('rohit')
+  cls()
   while True:
     mem = float(shell.run("ps aux | grep -v MEM | awk '{sum += $4} END {print sum}'"))
     cpu = float(shell.run("ps aux | grep -v CPU | awk '{sum += $3} END {print sum/8}'"))
@@ -109,7 +110,7 @@ def repl():
     for i in range(16):
       writenum(s, sound_data[i])
     s.write('\r')
-    time.sleep(0.2)
+    time.sleep(0.15)
 
 dev = getDevice()
 if dev == "":
