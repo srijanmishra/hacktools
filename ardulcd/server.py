@@ -13,7 +13,7 @@ from execproc import Monitor
 s = serial.Serial()
 
 stream = None
-samples = 16
+samples = 1024
 s_rate = 44100
 def getFFT():
   global stream
@@ -22,11 +22,21 @@ def getFFT():
     stream = p.open(format=pyaudio.paInt16, channels=1, rate=s_rate, input=True)
 
   audiodata = fromstring(stream.read(samples), dtype=short)
-  normalized_data = audiodata / 32768.0
-  fft_data = fft(normalized_data)
-  fft_max  = max(abs(fft_data))
-  norm_fft = map(lambda x: int(math.ceil(x)), abs(fft_data) * 7 / fft_max)
-  return norm_fft
+  absdata = abs(audiodata)
+  avgAmp = [0] * 16
+  for i in range(16):
+    extract = absdata[samples/16*i:samples/16*(i+1)]
+    avgAmp[i] = 1.0 * sum(extract) / len(extract)
+
+  maxA = max(avgAmp)
+  normAmp = map(lambda x: int(math.ceil(x * 7.0 / maxA)), avgAmp)
+  return normAmp
+  #print audiodata
+  #normalized_data = audiodata / 32768.0
+  #fft_data = fft(normalized_data)
+  #fft_max  = max(abs(fft_data))
+  #norm_fft = map(lambda x: int(math.ceil(x)), abs(fft_data) * 7 / fft_max)
+  #return norm_fft
 
 def getDevice():
   global s
@@ -51,7 +61,7 @@ def getDevice():
   return arduLcd
 
 def writenum(s, n):
-  s.write(chr(n))
+  s.write(chr(n%256))
 
 def customChars():
   global s
