@@ -13,8 +13,8 @@ from execproc import Monitor
 s = serial.Serial()
 
 stream = None
-samples = 1024
-s_rate = 44100
+samples = 8
+s_rate = 11000
 def getFFT():
   global stream
   if stream is None:
@@ -22,21 +22,19 @@ def getFFT():
     stream = p.open(format=pyaudio.paInt16, channels=1, rate=s_rate, input=True)
 
   audiodata = fromstring(stream.read(samples), dtype=short)
-  absdata = abs(audiodata)
-  avgAmp = [0] * 16
-  for i in range(16):
-    extract = absdata[samples/16*i:samples/16*(i+1)]
-    avgAmp[i] = 1.0 * sum(extract) / len(extract)
-
-  maxA = max(avgAmp)
-  normAmp = map(lambda x: int(math.ceil(x * 7.0 / maxA)), avgAmp)
-  return normAmp
-  #print audiodata
-  #normalized_data = audiodata / 32768.0
-  #fft_data = fft(normalized_data)
-  #fft_max  = max(abs(fft_data))
-  #norm_fft = map(lambda x: int(math.ceil(x)), abs(fft_data) * 7 / fft_max)
-  #return norm_fft
+  #absdata = abs(audiodata) #Using amplitudes not freqs
+  #avgAmp = [0] * 16
+  #for i in range(16):
+  #  extract = absdata[samples/16*i:samples/16*(i+1)]
+  #  avgAmp[i] = 1.0 * sum(extract) / len(extract)
+  #maxA = max(avgAmp)
+  #normAmp = map(lambda x: int(math.ceil(x * 7.0 / maxA)), avgAmp)
+  #return normAmp
+  normalized_data = audiodata / 32768.0
+  fft_data = fft(normalized_data)
+  fft_max  = max(abs(fft_data))
+  norm_fft = map(lambda x: int(math.ceil(x)), abs(fft_data) * 7 / fft_max)
+  return norm_fft
 
 def getDevice():
   global s
@@ -112,15 +110,20 @@ def repl():
   shell = Monitor('rohit')
   cls()
   while True:
-    mem = float(shell.run("ps aux | grep -v MEM | awk '{sum += $4} END {print sum}'"))
-    cpu = float(shell.run("ps aux | grep -v CPU | awk '{sum += $3} END {print sum/8}'"))
+    cpu, mem = map(float, shell.run("ps axo pcpu,pmem | awk '{sum += $0; pmem += $2} END {print sum/8, pmem}'").split(' '))
+    if cpu > 100.0: cpu = 100 # Happens on Intel multicores
     temp = float(shell.run("""sensors | grep 'Core.*+' | awk '{print $3}' | sed 's/+//' | sed 's/.C//' | awk '{sum+=$0} END {print sum/4}'"""))
-    pl("%0.1f%% %0.1fG %0.1fC" % (cpu, mem*4/100,temp))
+    goto(0,0)
+    pl("%0.1f%% %0.1fG %0.1fC" % (cpu, mem*3.9/100,temp))
     sound_data = getFFT()
-    for i in range(16):
+    goto(1,0)
+    current_time = time.strftime("%H:%M:%S")
+    for ch in current_time:
+      s.write(ch)
+    goto(1,8)
+    for i in range(samples):
       writenum(s, sound_data[i])
-    s.write('\r')
-    time.sleep(0.15)
+    time.sleep(0.2)
 
 dev = getDevice()
 if dev == "":
