@@ -39,7 +39,7 @@ def getDevice():
   arduLcd = ''
   for path in paths:
     s = serial.Serial(path, 9600)
-    s.timeout = 1
+    s.timeout = 4
     s.readall()
     s.write('~')
     payload = s.read()
