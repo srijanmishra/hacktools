@@ -3,6 +3,8 @@
 import serial
 import os, sys, time
 
+import gtop
+
 import pyaudio
 from scipy import fft
 from numpy import short, fromstring
@@ -13,7 +15,7 @@ from execproc import Monitor
 s = serial.Serial()
 
 stream = None
-samples = 8
+samples = 4
 s_rate = 11000
 def getFFT():
   global stream
@@ -21,7 +23,7 @@ def getFFT():
     p = pyaudio.PyAudio()
     stream = p.open(format=pyaudio.paInt16, channels=1, rate=s_rate, input=True)
 
-  audiodata = fromstring(stream.read(samples), dtype=short)
+  audiodata = fromstring(stream.read(samples*16), dtype=short)
   #absdata = abs(audiodata) #Using amplitudes not freqs
   #avgAmp = [0] * 16
   #for i in range(16):
@@ -80,7 +82,7 @@ def cls():
   25: curon, blink
   """
   global s
-  writenum(s, 24)
+  writenum(s, 22)
 
 def backlight(p):
   global s
@@ -98,32 +100,54 @@ def goto(line, column):
 
 def pl(st):
   global s
-  st = st[:16]
-  line = [' '] * 16
+  line = [' '] * len(st)
   for i in range(len(st)):
     line[i] = st[i]
   s.write(''.join(line))
-  s.write('\r')
 
 def repl():
   global s
   shell = Monitor('rohit')
   cls()
+  curEpocs1 = time.time()
+  curEpocs2 = time.time()
+  lastBytes = 0
   while True:
     cpu, mem = map(float, shell.run("ps axo pcpu,pmem | awk '{sum += $0; pmem += $2} END {print sum/8, pmem}'").split(' '))
+    #cpu = 0
+    #for core in gtop.cpu().cpus:
+    #  cpu += 100.0 * (core.user+core.sys) / core.total
+    #print cpu
+    #cpu /= 8
     if cpu > 100.0: cpu = 100 # Happens on Intel multicores
+    mem = 1.0 * gtop.mem().user / gtop.mem().total * (gtop.mem().total/1024.0/1024.0/1024.0)#3.98
     temp = float(shell.run("""sensors | grep 'Core.*+' | awk '{print $3}' | sed 's/+//' | sed 's/.C//' | awk '{sum+=$0} END {print sum/4}'"""))
+    netload = gtop.netload('eth0')
+    curEpocs2 = time.time()
+    net = (netload.bytes_total - lastBytes) / (curEpocs2 - curEpocs1) / 1024 #kbps
+    lastBytes = netload.bytes_total
+    curEpocs1 = curEpocs2
+    if net > 999:
+      net /= 1024
+      netstr = "%.1fM" % net
+    else:
+      netstr = "%.1fK" % net
+
     goto(0,0)
-    pl("%0.1f%% %0.1fG %0.1fC" % (cpu, mem*3.9/100,temp))
-    sound_data = getFFT()
+    pl("%.1f " % cpu)
+    goto(0, 5)
+    pl("%0.1fG" % mem)
+    goto(0,10)
+    pl(netstr.zfill(6))
     goto(1,0)
-    current_time = time.strftime("%H:%M:%S")
-    for ch in current_time:
-      s.write(ch)
-    goto(1,8)
+    pl(time.strftime("%H%M:%S"))
+    goto(1,11)
+    pl("%0.1fC" % temp)
+    goto(1,7)
+    sound_data = getFFT()
     for i in range(samples):
       writenum(s, sound_data[i])
-    time.sleep(0.2)
+    time.sleep(0.4)
 
 dev = getDevice()
 if dev == "":
