@@ -82,7 +82,7 @@ def cls():
   25: curon, blink
   """
   global s
-  writenum(s, 22)
+  writenum(s, 24)
 
 def backlight(p):
   global s
@@ -109,6 +109,7 @@ def repl():
   global s
   shell = Monitor('rohit')
   cls()
+  cls()
   curEpocs1 = time.time()
   curEpocs2 = time.time()
   lastBytes = 0
@@ -129,24 +130,23 @@ def repl():
     curEpocs1 = curEpocs2
     if net > 999:
       net /= 1024
-      netstr = "%.1fM" % net
+      netstr = "%.2fM" % net
     else:
-      netstr = "%.1fK" % net
+      netstr = "%.2fK" % net
 
     goto(0,0)
-    pl("%.1f " % cpu)
-    goto(0, 5)
+    pl("%.1f%% " % cpu)
+    goto(0, 6)
     pl("%0.1fG" % mem)
-    goto(0,10)
-    pl(netstr.zfill(6))
-    goto(1,0)
-    pl(time.strftime("%H%M:%S"))
-    goto(1,11)
+    goto(0,11)
     pl("%0.1fC" % temp)
-    goto(1,7)
-    sound_data = getFFT()
-    for i in range(samples):
-      writenum(s, sound_data[i])
+    goto(1,0)
+    pl(time.strftime("%H:%M:%S"))
+    goto(1,9)
+    pl(netstr.zfill(7))
+    #sound_data = getFFT()
+    #for i in range(samples): # don't have sound data for now
+    #  writenum(s, sound_data[i] % 8)
     time.sleep(0.4)
 
 dev = getDevice()
