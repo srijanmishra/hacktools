@@ -1,59 +1,54 @@
 #!/usr/bin/env python
 # baagichhaap: Takes your decent photo and makes it Baagi!
-# dependency: opencv
+# dependency: python-opencv
 # author: bhaisahab
 
 import sys, os
-from opencv.cv import *
-from opencv.highgui import *
+import cv
 
 def detectObjects(imagePath, debug=False):
-  image = cvLoadImage(imagePath)
+  import cv
+  image = cv.LoadImage(imagePath) #, cv.CV_LOAD_IMAGE_COLOR)
   if debug:
-    import cv
     oimage = cv.LoadImage(imagePath, cv.CV_LOAD_IMAGE_COLOR)
 
-  storage = cvCreateMemStorage(0)
-  cvClearMemStorage(storage)
+  storage = cv.CreateMemStorage(0)
 
-  cascade = cvLoadHaarClassifierCascade(
-    'haarcascade_frontalface_default.xml',
-    cvSize(1,1))
-  faces = cvHaarDetectObjects(image, cascade, storage, 1.1, 2, CV_HAAR_DO_CANNY_PRUNING, cvSize(50,50))
+  cascade = cv.Load('haarcascade_frontalface_default.xml')
+  faces = cv.HaarDetectObjects(image, cascade, storage, 1.1, 3, 0, (50,50))
 
   moochstr = ""
   if not faces:
     return
 
-  for f in faces:
-    if debug: cv.Rectangle(oimage, (f.x, f.y), (f.x+f.width, f.y+f.height), cv.CV_RGB(255,0,0))
-    img = cvGetSubRect(image, f)
-    cascade = cvLoadHaarClassifierCascade('haarcascade_mcs_mouth.xml', cvSize(1,1))
-    mouths = cvHaarDetectObjects(img, cascade, storage, 1.1, 3, 0, cvSize(30,30))
-    cascade = cvLoadHaarClassifierCascade('haarcascade_mcs_nose.xml', cvSize(1,1))
-    noses = cvHaarDetectObjects(img, cascade, storage, 1.1, 3, 0, cvSize(20,15))
+  for ((fx, fy, fw, fh), fn) in faces:
+    if debug: cv.Rectangle(oimage, (fx, fy), (fx+fw, fy+fh), cv.CV_RGB(255,0,0))
+    img = cv.GetSubRect(image, (fx, fy, fw, fh))
+    cascade = cv.Load('haarcascade_mcs_mouth.xml')
+    mouths = cv.HaarDetectObjects(img, cascade, storage, 1.1, 3, 0, (30,30))
+    cascade = cv.Load('haarcascade_mcs_nose.xml')
+    noses = cv.HaarDetectObjects(img, cascade, storage, 1.1, 3, 0, (20,15))
 
-    if mouths[0] != None and noses[0] != None:
-      nose = noses[0]
-      mouth = mouths[0]
+    if mouths and noses:
+      nose = (0,0,0,0)
+      mouth = (0,0,0,0)
 
-      for n in noses:
-        if debug: cv.Rectangle(oimage, (f.x+n.x, f.y+n.y), (f.x+n.x+n.width, f.y+n.y+n.height), cv.CV_RGB(0,0,255))
-        if n.y+n.height >= nose.y+nose.height:
-          nose = n
+      for ((nx, ny, nw, nh), nn) in noses:
+        if debug: cv.Rectangle(oimage, (fx+nx, fy+ny), (fx+nx+nw, fy+ny+nh), cv.CV_RGB(0,0,255))
+        if ny+nh >= nose[1]+nose[3]:
+          nose = (nx, ny, nw, nh)
 
-      for m in mouths:
-        if debug: cv.Rectangle(oimage, (f.x+m.x, f.y+m.y), (f.x+m.x+m.width, f.y+m.y+m.height), cv.CV_RGB(0,255,0))
-        if m.y > nose.y:
-          mouth = m
+      for ((mx, my, mw, mh), mn) in mouths:
+        if debug: cv.Rectangle(oimage, (fx+mx, fy+my), (fx+mx+mw, fy+my+mh), cv.CV_RGB(0,255,0))
+        if my > nose[1]:
+          mouth = (mx, my, mw, mh)
           break
 
-      if mouth.y < nose.y:
-        mouth = nose
-        mouth.y += nose.height/2
+      if mouth[1] < nose[1]:
+        mouth = (nose[0], nose[1]+nose[3]/2, nose[2], nose[3])
 
-      moochw, moochh = f.width, 400*f.width/1600
-      moochx, moochy = f.x + (mouth.x + mouth.width/2 + nose.x + nose.width/2)/2 - moochw/2, f.y + (nose.y + nose.height + mouth.y + mouth.height/3)/2 - moochh/2
+      moochw, moochh = fw, 400*fw/1600
+      moochx, moochy = fx + (mouth[0] + mouth[2]/2 + nose[0] + nose[2]/2)/2 - moochw/2, fy + (nose[1] + nose[3] + mouth[1] + mouth[3]/3)/2 - moochh/2
       moochstr += """ -draw 'image SrcOver %d,%d %d,%d mooch.png'""" % (moochx, moochy, moochw, moochh)
 
   if moochstr == "": return
