@@ -1,17 +1,32 @@
-Tools and Hacks: (battery included :)
+About
+=====
 
+hack: an inelegant but effective solution to a computing problem
+tool: any item that can be used to achieve a goal
+
+Tools and Hacks
+===============
+
+apachemirrorer: mirrors a dir served by apache webserver
+ardulcd: an arduino powered and python driven LCD
 attackprofiler: profiles attack on a server, using geoip etc
+baagichhaap: detects a face in an image and draws a mustache (moochh) on it
 bhuproxy: reverse proxy serves Internet via one of the bhu proxies
 buzzackup: google buzz feed backup utility and static feed webpage generator
+clap-player: clap to change running song in cmus
 crawlerdataminer: social network data miner
 image-man: multiple image processors
 s3uploader: a simple python-boto based s3 uploader script
 spojpdfgetter: grabs all puzzle/problem pdfs from spoj for offline fun
+tcpdumpstats: creates nice stat page using tcpdump data
 telnethack: HTTP over Telnet, hacks over one of the bhu switches
+vpnmon: draws nice current stats of a running openvpn server
+
+LICENSE
+=======
 
 License for all:
-(please consider some donations if you find my hacks useful :)
-Copyright (c) 2011, Rohit Yadav
+Copyright (c) 2011-12, Rohit Yadav
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
