@@ -1,6 +1,11 @@
 #!/bin/sh
 
-blacklisted=`cat /etc/openvpn/blacklist` #'spardha codfest marketing.codefest'
+if [ `expr match "$username" '^.*@itbhu[.]ac[.]in'` -eq 0 ]
+then
+  username="${username}@itbhu.ac.in"
+fi
+
+blacklisted=`cat /etc/openvpn/blacklist`
 declare -A blacklist
 for bluser in $blacklisted
 do 
@@ -12,7 +17,7 @@ then
   exit 1
 fi
 
-outp=$(curl  --silent  --location https://www.google.com/accounts/ClientLogin   --data "Email=$username@itbhu.ac.in&Passwd=$password"  --header 'Content-Type:application/x-www-form-urlencoded')
+outp=$(curl  --silent  --location https://www.google.com/accounts/ClientLogin   --data "Email=$username&Passwd=$password"  --header 'Content-Type:application/x-www-form-urlencoded')
 if [[ "$outp" =~ ^SID= ]]
 then
 exit 0
