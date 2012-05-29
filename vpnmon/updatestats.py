@@ -26,8 +26,9 @@ def size(b):
 
 status_logfile = '/var/log/openvpn/status.log'
 users_datafile = "/etc/openvpn/users.data"
+users_offline_datafile = "/etc/openvpn/users-offline.data"
 stats_logfile = '/var/log/openvpn/stats.log'
-stats_html = '/var/www/html/vpn/stats.html'
+stats_html = '/var/www/html/stats.html'
 
 f = open(status_logfile, 'r')
 data = (f.read()).split('\n')
@@ -36,17 +37,21 @@ f.close()
 #received is bytes received from clients, uploaded
 #sent is bytes sent to clients, or downloaded
 try:
-  users = pickle.load(open(users_datafile, "rb"))
+  users_data = pickle.load(open(users_datafile, "rb"))
+  users_offline = pickle.load(open(users_offline_datafile, "rb"))
 except:
+  print "Shucks, user loading failed"
   users = {}
+#  users_offline = {}
 
+users = {}
 connected_users = 0
 total_bandwidth = 0
 for line in data:
   if line[:11] == "CLIENT_LIST":
-    connected_users += 1
     pdata = parse(line, ',')
     if pdata[1] == "UNDEF": continue
+    connected_users += 1
     if pdata[1] in users:
       users[pdata[1]]['up'] += long(pdata[4])
       users[pdata[1]]['down'] += long(pdata[5])
@@ -58,6 +63,9 @@ for line in data:
     users[pdata[1]]['bandwidth'] = ((long(pdata[5])+long(pdata[4]))/(time.time() - float(pdata[7])))/1024.0
     total_bandwidth += (8 * users[pdata[1]]['bandwidth'] * 1024)/1000000 #Mbits/s
 
+users = dict(users_data.items() + users_offline.items() + users.items())
+
+print "Users = ",  connected_users, len(users)
 print "Total bandwidth is", total_bandwidth, " Mbps"
 
 sent = 0
@@ -126,17 +134,18 @@ if now.strftime("%M") == "00":
       request = urllib2.Request(url);
       response = urllib2.urlopen(request)
       rawData = response.read()
-      f = open("/var/www/html/vpn/chart.png", 'w')
+      f = open("/var/www/html/chart.png", 'w')
       f.write(rawData)
       f.close()
 
-  chart_url = """http://chart.apis.google.com/chart?chxl=0:|%s&chxp=0,%s&chxr=0,0,23|1,0,1000&chxs=0,676767,11.5,0,lt,676767&chxt=x,y&chs=1000x200&cht=lc&chco=0080009F,008000BE&chds=0,100,0,1000&chd=t:0,0|%s&chg=25,50&chls=0.75|1.5&chma=|0,10&chm=o,008000,1,-1,6|b,00AA005D,0,1,0""" % (labels[:-1], labels_pos[:-1], activity[:-1])
+  chart_url = """http://chart.apis.google.com/chart?chxl=0:|%s&chxp=0,%s&chxr=0,0,23|1,0,2000&chxs=0,676767,11.5,0,lt,676767&chxt=x,y&chs=1000x200&cht=lc&chco=0080009F,008000BE&chds=0,100,0,2000&chd=t:0,0|%s&chg=25,50&chls=0.75|1.5&chma=|0,10&chm=o,008000,1,-1,6|b,00AA005D,0,1,0""" % (labels[:-1], labels_pos[:-1], activity[:-1])
   saveChart(chart_url)
 
 html = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 <title>VPN Stats</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -149,7 +158,9 @@ html = """
 </style>
 <link rel="stylesheet" type="text/css" href="css/style.css"/>
 <link rel="stylesheet" type="text/css" href="css/bootstrap-responsive.min.css">
+<script type="text/javscript">
 
+</script>
 <script src="js/jquery.min.js"></script>
 <script src="js/jquery.dataTables.min.js"></script>
 <script src="js/bootstrap.min.js"></script>
@@ -159,7 +170,7 @@ html = """
   $(document).ready(function() {
     $('#userstats').dataTable( {
       "bPaginate": false,
-      "aaSorting": [[ 1, "desc" ]],
+      "aaSorting": [[ 3, "desc" ]],
       "sDom": "<'row'<'span12'f>r><'row'<'span12'i>t<'span6'p>>"
     } );
   } );
@@ -179,9 +190,8 @@ html = """
           <a class="brand" href="#">ITBHU VPN Service</a>
           <div class="nav-collapse">
             <ul class="nav">
-              <li><a href="/vpn/">Home</a></li>
-              <li class="active"><a href="/vpn/stats.html">Stats</a></li>
-              <li><a href="/wmg/">WMG</a></li>
+              <li><a href="/">Home</a></li>
+              <li class="active"><a href="/stats.html">Stats</a></li>
             </ul>
           </div><!--/.nav-collapse -->
         </div>
@@ -189,17 +199,16 @@ html = """
     </div>
 
 <div class="container" align="center">
-<br>
 <h1>VPN Stats: %s</h1>
 <h3>Last updated on: %s</h3>
 <img src="chart.png" width="1000" height="200" alt="" />
 <p>x-axis: time in hours | y-axis: number of active users at that hour</p>
-<h3>%s downloaded | %s uploaded | %0.3F Mbit/s momentary ∑bandwidth</h3>
+<h3>%s downloaded | %s uploaded | %0.3F Mbps momentary ∑bandwidth</h3>
 <h3>%ld/%ld active users</h3>
 %s
 <br>
 <footer>
-  <p>Created by <a href="http://rohityadav.in/">rohityadav</a>. Maintained by WMG, IT-BHU</p>
+  <p>Maintained by WMG, IT-BHU</p>
 </footer>
 <br>
 </div>
@@ -220,4 +229,10 @@ if now.strftime("%H%M") == "0000":
   new_users = {}
   for key in users.keys():
     new_users[key] = {'up': 0, 'down': 0}
+  pickle.dump(new_users, open(users_datafile, "wb"))
+else:
+  new_users = {}
+  for key in users.keys():
+    new_users[key] = {'up': users[key]['up'], 'down': users[key]['down']}
+  #print new_users
   pickle.dump(new_users, open(users_datafile, "wb"))

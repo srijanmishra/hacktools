@@ -6,7 +6,7 @@ except:
   import pickle
 
 import sys
-users_datafile = "/etc/openvpn/users.data"
+users_datafile = "/etc/openvpn/users-offline.data"
 
 try:
   users = pickle.load(open(users_datafile, "rb"))
@@ -19,9 +19,6 @@ if user == "init":
     users[key]['up'] = 0
     users[key]['down'] = 0
   print "User db reset"
-elif sys.argv[2] == "del":
-  users.pop(user)
-  print "Removing user from the records:", user
 elif sys.argv[2] == "clear":
   users[user]['down'] = 0
   users[user]['up'] = 0
