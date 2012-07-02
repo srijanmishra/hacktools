@@ -16,6 +16,7 @@ buzzackup: google buzz feed backup utility and static feed webpage generator
 clap-player: clap to change running song in cmus
 crawlerdataminer: social network data miner
 image-man: multiple image processors
+maatv: frontend for maa to simplifies tv episodes viewing
 s3uploader: a simple python-boto based s3 uploader script
 spojpdfgetter: grabs all puzzle/problem pdfs from spoj for offline fun
 tcpdumpstats: creates nice stat page using tcpdump data
